@@ -4,7 +4,7 @@ from splinter import Browser
 from bs4 import BeautifulSoup as soup
 import pandas as pd
 import datetime as dt
-
+import numpy as np
 
 def scrape_all():
     # Initiate headless driver for deployment
@@ -18,7 +18,8 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
-        "last_modified": dt.datetime.now()
+        "last_modified": dt.datetime.now(),
+        "listdict": hem_scrape(browser)
     }
 
     # Stop webdriver and return data
@@ -55,6 +56,7 @@ def mars_news(browser):
 
 
 def featured_image(browser):
+    
     # Visit URL
     url = 'https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
     browser.visit(url)
@@ -100,6 +102,66 @@ def mars_facts():
 
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
+
+def hem_scrape(browser):
+
+    # 1. Use browser to visit the URL 
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url)
+
+    # Get BS4 working
+    html = browser.html
+    moons_soup = soup(html, 'html.parser')
+
+    # Find all the URLs and put into a list
+    hemis = moons_soup.find_all("a", class_="itemLink product-item")
+
+    hemilist = []
+
+    for hemi in hemis:
+        hemilist.append(hemi.get("href"))
+
+    # Remove the duplicates and put back into a unique list
+    hemilist = np.unique(hemilist)
+    hemisp = hemilist.tolist()
+
+    # 2. Create a list to hold the images and titles.
+    hemisphere_image_urls = []
+    site = 'https://astrogeology.usgs.gov/'
+    # 3. Write code to retrieve the image urls and titles for each hemisphere.
+
+
+    # Write for loop to iterate through the tags/CSS elements
+
+    for hemi in hemisp:
+            
+        # Create dictionary object inside the for loop
+        hem_dict = {}    
+        
+        # click the link
+        browser.visit(f"{site}{hemi}")
+      
+        # Reset the parser
+        html2 = browser.html
+        moons_soup = soup(html2, 'html.parser')
+        
+        # get the image link for the full sized image
+        imgtarget = moons_soup.select_one('li a').get('href')
+        
+        # get the title for the image
+        imgtitle = moons_soup.select_one('h2').get_text()
+        
+        # Update the dictionary with this info
+        hem_dict.update({'img_url': imgtarget, 'title':imgtitle})
+        
+        # Append the dictionary to the URL list
+        hemisphere_image_urls.append(hem_dict)
+            
+        # For loop will: Click on each link, navigate to full-res image and pull image URL string and title for each image
+        browser.back()
+
+    return hemisphere_image_urls
+
 
 if __name__ == "__main__":
 
